@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         attribution: attributionData,
         source: "tienda-cliente-test",
+        garden_project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010", // El ID que identifica a este cliente en GardenAds
       },
       success_url: `${domainURL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${domainURL}/canceled`,

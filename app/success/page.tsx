@@ -13,6 +13,9 @@ function SuccessContent() {
 
   useEffect(() => {
     if (sessionId) {
+      // Limpiar la atribución del local storage tras la compra exitosa
+      localStorage.removeItem("_ga_attribution");
+      
       fetch(`/api/checkout-session?sessionId=${sessionId}`)
         .then((res) => res.json())
         .then((data) => setSession(data))
