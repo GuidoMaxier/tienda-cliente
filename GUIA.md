@@ -62,39 +62,36 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
 
 ---
 
-### 2. Persistencia en el Checkout (Pasar el dato al Servidor)
+### 2. Persistencia Automática (Sin Código en el Formulario)
 
-Cuando el usuario decide comprar, debemos extraer esa información del `localStorage` y enviársela a Stripe.
+Nuestro script inteligente detecta automáticamente cualquier formulario de compra en tu página e inyecta la información de atribución. **No necesitas modificar tu HTML ni agregar inputs manualmente.**
 
-**En tu formulario de compra (Frontend):**
-Debes añadir un campo oculto que lea el `localStorage` antes de enviar el formulario.
+---
 
-```javascript
-// Ejemplo en React/Next.js
-const [attribution, setAttribution] = useState("");
+### 3. Configuración del Servidor (El Único Paso de Código)
 
-useEffect(() => {
-  const stored = localStorage.getItem("_ga_attribution");
-  if (stored) setAttribution(stored);
-}, []);
+Cuando tu servidor reciba el formulario de compra, solo debes asegurarte de capturar el campo `attributionData` y pasárselo a Stripe en el objeto `metadata`.
 
-// En el return de tu componente:
-<input type="hidden" name="attributionData" value={attribution} />;
-```
-
-**En tu API de Stripe (Backend):**
-Al crear la `checkout.session`, debes incluir estos datos en el objeto `metadata`. **Esto es vital** para que luego GardenAds sepa a qué anuncio corresponde la venta.
+**Ejemplo en Node.js / Next.js:**
 
 ```javascript
-// En tu servidor (Node.js/Next.js)
+// 1. Captura el dato del formulario (se inyecta solo)
+const formData = await request.formData();
+const attributionData = formData.get("attributionData");
+
+// 2. Pásalo a Stripe (Esto es vital para GardenAds)
 const session = await stripe.checkout.sessions.create({
-  mode: 'payment',
-  line_items: [...],
-  metadata: {
-    attribution: attributionData, // El JSON con fclip, gclip, etc.
-    garden_project_id: "TU_PROJECT_ID", // Identifica tu cuenta en GardenAds
+  // ... tus otros campos (mode, line_items, etc.) ...
+  payment_intent_data: {
+    metadata: {
+      attribution: attributionData,
+      garden_project_id: "TU_PROJECT_ID",
+    },
   },
-  // ...
+  metadata: {
+    attribution: attributionData,
+    garden_project_id: "TU_PROJECT_ID",
+  },
 });
 ```
 

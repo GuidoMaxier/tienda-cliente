@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
 
     const domainURL = process.env.DOMAIN || "http://localhost:4242";
 
+    console.log("Creating session with attribution:", attributionData);
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [
@@ -25,6 +27,13 @@ export async function POST(request: NextRequest) {
           quantity: quantity,
         },
       ],
+      payment_intent_data: {
+        metadata: {
+          attribution: attributionData,
+          source: "tienda-cliente-test",
+          garden_project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+        },
+      },
       metadata: {
         attribution: attributionData,
         source: "tienda-cliente-test",

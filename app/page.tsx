@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Minus, Plus, ShoppingCart, Check, Settings, Trash2, Rocket, Facebook } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Check } from "lucide-react";
+import { DebugSimulator } from "@/components/debug-simulator";
+import { AttributionStatus } from "@/components/attribution-status";
 
+// --- Constants ---
 const MIN_PHOTOS = 1;
 const MAX_PHOTOS = 10;
 const PRICE_PER_UNIT = 5.99;
@@ -41,55 +42,8 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4 md:p-8 font-sans">
-      {/* Floating Debug Settings */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-12 w-12 rounded-full shadow-xl bg-white border-slate-200 hover:bg-slate-50 transition-all hover:rotate-45">
-              <Settings className="h-5 w-5 text-slate-600" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-md border-slate-200 shadow-2xl rounded-2xl" side="top" align="end">
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold leading-none text-slate-900 flex items-center gap-2">
-                  <Rocket className="h-4 w-4 text-blue-500" /> Debug UTM Center
-                </h4>
-                <p className="text-[11px] text-slate-500">Simula entradas de campañas para testear GardenAds.</p>
-              </div>
-              <div className="grid gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start text-[11px] h-9 gap-2 border-slate-100 hover:bg-slate-50"
-                  onClick={() => window.location.href = '/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&gclip=g_test_123'}
-                >
-                  <div className="w-2 h-2 rounded-full bg-red-400" /> Google Ads (Standard CPC)
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start text-[11px] h-9 gap-2 border-slate-100 hover:bg-slate-50 text-blue-600"
-                  onClick={() => window.location.href = '/?utm_source=facebook&utm_medium=social&utm_campaign=black_friday&utm_content=video_ad&fclip=f_test_456'}
-                >
-                  <Facebook className="h-3 w-3" /> Facebook Ads (Master URL)
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-[11px] h-9 gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 mt-2"
-                  onClick={() => {
-                    localStorage.removeItem('_ga_attribution');
-                    window.location.href = '/';
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" /> Limpiar Atribución
-                </Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <AttributionStatus attribution={attribution} />
+      <DebugSimulator />
 
       <div className="max-w-4xl w-full grid md:grid-cols-2 gap-8 items-center relative">
         {/* Product Image Section */}
@@ -104,29 +58,6 @@ export default function Home() {
           <Badge className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-slate-900 border-none shadow-sm hover:bg-white text-[10px] font-bold uppercase tracking-widest">
             Premium Original
           </Badge>
-          
-          {attribution && (
-            <div className="absolute bottom-4 left-4 right-4 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl text-[10px] shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-1">
-                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="font-bold text-slate-300 uppercase underline decoration-blue-500 underline-offset-4">Tracking Activo: UTM Detectado</span>
-               </div>
-               <div className="grid grid-cols-2 gap-x-4 gap-y-1 opacity-90 font-mono">
-                 {/* Lógica para manejar tanto string simple como objeto estructurado {params, expiry} */}
-                 {(() => {
-                    const data = attribution.params || attribution;
-                    return (
-                      <>
-                        <div>Source: <span className="text-blue-400">{data.utm_source || 'direct'}</span></div>
-                        <div>Medium: <span className="text-blue-400">{data.utm_medium || 'N/A'}</span></div>
-                        <div>Campaign: <span className="text-green-400">{data.utm_campaign || 'N/A'}</span></div>
-                        <div>ID: <span className="text-yellow-400 font-bold">{data.gclip || data.fclip || 'N/A'}</span></div>
-                      </>
-                    );
-                 })()}
-               </div>
-            </div>
-          )}
         </div>
 
         {/* Product Info Section */}
@@ -159,7 +90,7 @@ export default function Home() {
               <input 
                 type="hidden" 
                 name="attributionData" 
-                value={typeof attribution === 'object' ? JSON.stringify(attribution) : attribution} 
+                value={attribution ? (typeof attribution === 'object' ? JSON.stringify(attribution) : attribution) : ""} 
               />
               
               <div className="flex flex-col gap-3">

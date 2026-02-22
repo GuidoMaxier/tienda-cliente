@@ -35,14 +35,26 @@ export default function RootLayout({
                   });
                   if (hasData) {
                     var expiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 días
-                    localStorage.setItem('_ga_attribution', JSON.stringify({
-                      params: attrData,
-                      expiry: expiry
-                    }));
+                    var payload = JSON.stringify({ params: attrData, expiry: expiry });
+                    localStorage.setItem('_ga_attribution', payload);
+                    
+                    // --- NUEVO: Inyección Automática ---
+                    function inject() {
+                      var forms = d.querySelectorAll('form');
+                      forms.forEach(function(f) {
+                        if (!f.querySelector('input[name="attributionData"]')) {
+                          var i = d.createElement('input');
+                          i.type = 'hidden'; i.name = 'attributionData'; i.value = payload;
+                          f.appendChild(i);
+                        }
+                      });
+                    }
+                    inject(); // Ejecutar ahora
+                    setInterval(inject, 2000); // Y cada 2 segundos por si hay carga dinámica
                   }
                 } catch(e) {}
 
-                // 2. Cargador del Pixel de GardenAds
+                // 2. Cargador del Pixel de GardenAds (Reporte)
                 w['_aq']=w['_aq']||[];
                 w['_ak']=k;
                 w['_au']=u;
