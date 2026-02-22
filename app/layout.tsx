@@ -23,6 +23,10 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function(w,d,s,u,k){
+                var gardenUrl = '${process.env.NEXT_PUBLIC_GARDEN_ADS_URL || "http://localhost:3000"}';
+                var apiKey = '${process.env.NEXT_PUBLIC_GARDEN_ADS_KEY || "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010"}';
+                var expiryDays = 7;
+
                 // 1. Captura inmediata de parámetros (Atribución)
                 try {
                   var urlParams = new URLSearchParams(w.location.search);
@@ -34,36 +38,44 @@ export default function RootLayout({
                     if (val) { attrData[p] = val; hasData = true; }
                   });
                   if (hasData) {
-                    var expiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 días
+                    var expiry = Date.now() + (expiryDays * 24 * 60 * 60 * 1000);
                     var payload = JSON.stringify({ params: attrData, expiry: expiry });
                     localStorage.setItem('_ga_attribution', payload);
                     
-                    // --- NUEVO: Inyección Automática ---
+                    // --- Inyección Automática ---
                     function inject() {
                       var forms = d.querySelectorAll('form');
+                      var visitorId = localStorage.getItem('_a_vid') || '';
                       forms.forEach(function(f) {
+                        // Inyectar Datos de Atribución (UTMs, GCLIP, etc)
                         if (!f.querySelector('input[name="attributionData"]')) {
                           var i = d.createElement('input');
                           i.type = 'hidden'; i.name = 'attributionData'; i.value = payload;
                           f.appendChild(i);
                         }
+                        // Inyectar ID de Visitante (external_session_id)
+                        if (!f.querySelector('input[name="externalClientId"]')) {
+                          var i2 = d.createElement('input');
+                          i2.type = 'hidden'; i2.name = 'externalClientId'; i2.value = visitorId;
+                          f.appendChild(i2);
+                        }
                       });
                     }
-                    inject(); // Ejecutar ahora
-                    setInterval(inject, 2000); // Y cada 2 segundos por si hay carga dinámica
+                    inject();
+                    setInterval(inject, 2000);
                   }
                 } catch(e) {}
 
                 // 2. Cargador del Pixel de GardenAds (Reporte)
                 w['_aq']=w['_aq']||[];
-                w['_ak']=k;
-                w['_au']=u;
+                w['_ak']=apiKey;
+                w['_au']=gardenUrl;
                 var f=d.getElementsByTagName(s)[0],
                     j=d.createElement(s);
                 j.async=true;
-                j.src=u+'/pixel.js';
+                j.src=gardenUrl+'/pixel.js';
                 f.parentNode.insertBefore(j,f);
-              })(window,document,'script','http://localhost:3000','56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010');
+              })(window,document,'script');
             `,
           }}
         />

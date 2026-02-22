@@ -18,7 +18,12 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
 <!-- Pegar en el <head> -->
 <script>
   (function (w, d, s, u, k) {
-    // Captura inmediata de parámetros
+    // CONFIGURACIÓN
+    var gardenUrl = "https://garden-ads.com";
+    var apiKey = "TU_PROJECT_ID";
+    var expiryDays = 7; // Días que durará el rastro del anuncio
+
+    // 1. Captura inmediata de parámetros
     try {
       var urlParams = new URLSearchParams(w.location.search);
       var attrData = {};
@@ -28,6 +33,7 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
         "utm_source",
         "utm_medium",
         "utm_campaign",
+        "utm_content",
       ];
       var hasData = false;
       params.forEach(function (p) {
@@ -38,25 +44,40 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
         }
       });
       if (hasData) {
-        localStorage.setItem(
-          "_ga_attribution",
-          JSON.stringify({
-            params: attrData,
-            expiry: Date.now() + 7 * 24 * 60 * 60 * 1000,
-          }),
-        );
+        var payload = JSON.stringify({
+          params: attrData,
+          expiry: Date.now() + expiryDays * 24 * 60 * 60 * 1000,
+        });
+        localStorage.setItem("_ga_attribution", payload);
+
+        // Inyección automática en formularios
+        function inject() {
+          var forms = d.querySelectorAll("form");
+          forms.forEach(function (f) {
+            if (!f.querySelector('input[name="attributionData"]')) {
+              var i = d.createElement("input");
+              i.type = "hidden";
+              i.name = "attributionData";
+              i.value = payload;
+              f.appendChild(i);
+            }
+          });
+        }
+        inject();
+        setInterval(inject, 2000);
       }
     } catch (e) {}
-    // Carga del Pixel
+
+    // 2. Cargador del Pixel
     w["_aq"] = w["_aq"] || [];
-    w["_ak"] = k;
-    w["_au"] = u;
+    w["_ak"] = apiKey;
+    w["_au"] = gardenUrl;
     var f = d.getElementsByTagName(s)[0],
       j = d.createElement(s);
     j.async = true;
-    j.src = u + "/pixel.js";
+    j.src = gardenUrl + "/pixel.js";
     f.parentNode.insertBefore(j, f);
-  })(window, document, "script", "https://garden-ads.com", "TU_PROJECT_ID");
+  })(window, document, "script");
 </script>
 ```
 
@@ -75,9 +96,10 @@ Cuando tu servidor reciba el formulario de compra, solo debes asegurarte de capt
 **Ejemplo en Node.js / Next.js:**
 
 ```javascript
-// 1. Captura el dato del formulario (se inyecta solo)
+// 1. Captura los datos del formulario (inyectados automáticamente)
 const formData = await request.formData();
 const attributionData = formData.get("attributionData");
+const externalClientId = formData.get("externalClientId");
 
 // 2. Pásalo a Stripe (Esto es vital para GardenAds)
 const session = await stripe.checkout.sessions.create({
@@ -85,12 +107,14 @@ const session = await stripe.checkout.sessions.create({
   payment_intent_data: {
     metadata: {
       attribution: attributionData,
-      garden_project_id: "TU_PROJECT_ID",
+      project_id: "TU_PROJECT_ID",
+      external_session_id: externalClientId,
     },
   },
   metadata: {
     attribution: attributionData,
-    garden_project_id: "TU_PROJECT_ID",
+    project_id: "TU_PROJECT_ID",
+    external_session_id: externalClientId,
   },
 });
 ```

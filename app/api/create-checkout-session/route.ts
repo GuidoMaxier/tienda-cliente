@@ -6,10 +6,11 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const quantity = parseInt(formData.get("quantity") as string) || 1;
     const attributionData = formData.get("attributionData") as string || "";
+    const externalClientId = formData.get("externalClientId") as string || "";
 
     const domainURL = process.env.DOMAIN || "http://localhost:4242";
 
-    console.log("Creating session with attribution:", attributionData);
+    console.log("Creating session:", { attributionData, externalClientId });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -31,13 +32,15 @@ export async function POST(request: NextRequest) {
         metadata: {
           attribution: attributionData,
           source: "tienda-cliente-test",
-          garden_project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+          project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+          external_session_id: externalClientId,
         },
       },
       metadata: {
         attribution: attributionData,
         source: "tienda-cliente-test",
-        garden_project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010", // El ID que identifica a este cliente en GardenAds
+        project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+        external_session_id: externalClientId,
       },
       success_url: `${domainURL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${domainURL}/canceled`,
