@@ -50,17 +50,30 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
         });
         localStorage.setItem("_ga_attribution", payload);
 
-        // Inyección automática en formularios
+        // Inyección automática en formularios (Se actualiza cada 2s para asegurar el ID del pixel)
         function inject() {
           var forms = d.querySelectorAll("form");
+          var visitorId = localStorage.getItem("_a_vid") || "";
           forms.forEach(function (f) {
-            if (!f.querySelector('input[name="attributionData"]')) {
-              var i = d.createElement("input");
-              i.type = "hidden";
-              i.name = "attributionData";
-              i.value = payload;
-              f.appendChild(i);
+            // 1. Datos de Atribución (UTMs, GCLIP, etc.)
+            var attrInput = f.querySelector('input[name="attributionData"]');
+            if (!attrInput) {
+              attrInput = d.createElement("input");
+              attrInput.type = "hidden";
+              attrInput.name = "attributionData";
+              f.appendChild(attrInput);
             }
+            attrInput.value = payload;
+
+            // 2. ID de Visitante (Obligatorio para atribución exacta)
+            var vidInput = f.querySelector('input[name="externalClientId"]');
+            if (!vidInput) {
+              vidInput = d.createElement("input");
+              vidInput.type = "hidden";
+              vidInput.name = "externalClientId";
+              f.appendChild(vidInput);
+            }
+            if (visitorId) vidInput.value = visitorId;
           });
         }
         inject();

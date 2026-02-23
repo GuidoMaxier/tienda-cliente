@@ -47,17 +47,25 @@ export default function RootLayout({
                       var forms = d.querySelectorAll('form');
                       var visitorId = localStorage.getItem('_a_vid') || '';
                       forms.forEach(function(f) {
-                        // Inyectar Datos de Atribución (UTMs, GCLIP, etc)
-                        if (!f.querySelector('input[name="attributionData"]')) {
-                          var i = d.createElement('input');
-                          i.type = 'hidden'; i.name = 'attributionData'; i.value = payload;
-                          f.appendChild(i);
+                        // Inyectar/Actualizar Datos de Atribución
+                        var attrInput = f.querySelector('input[name="attributionData"]');
+                        if (!attrInput) {
+                          attrInput = d.createElement('input');
+                          attrInput.type = 'hidden'; attrInput.name = 'attributionData';
+                          f.appendChild(attrInput);
                         }
-                        // Inyectar ID de Visitante (external_session_id)
-                        if (!f.querySelector('input[name="externalClientId"]')) {
-                          var i2 = d.createElement('input');
-                          i2.type = 'hidden'; i2.name = 'externalClientId'; i2.value = visitorId;
-                          f.appendChild(i2);
+                        attrInput.value = payload;
+
+                        // Inyectar/Actualizar ID de Visitante (external_session_id)
+                        var vidInput = f.querySelector('input[name="externalClientId"]');
+                        if (!vidInput) {
+                          vidInput = d.createElement('input');
+                          vidInput.type = 'hidden'; vidInput.name = 'externalClientId';
+                          f.appendChild(vidInput);
+                        }
+                        // Actualizar solo si tenemos un ID (por si el pixel tarda en cargar)
+                        if (visitorId) {
+                          vidInput.value = visitorId;
                         }
                       });
                     }
