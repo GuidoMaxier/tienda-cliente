@@ -8,9 +8,12 @@ export async function POST(request: NextRequest) {
     const attributionData = formData.get("attributionData") as string || "";
     const externalClientId = formData.get("externalClientId") as string || "";
 
-    const domainURL = process.env.DOMAIN || "http://localhost:4242";
+    // Detectar automáticamente el dominio para la redirección (Vercel o Local)
+    const host = request.headers.get("host");
+    const protocol = host?.includes("localhost") ? "http" : "https";
+    const domainURL = process.env.DOMAIN || `${protocol}://${host}`;
 
-    console.log("Creating session:", { attributionData, externalClientId });
+    console.log("Creating session:", { attributionData, externalClientId, domainURL });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

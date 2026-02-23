@@ -23,8 +23,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function(w,d,s,u,k){
-                var gardenUrl = '${process.env.NEXT_PUBLIC_GARDEN_ADS_URL || "http://localhost:3000"}';
-                var apiKey = '${process.env.NEXT_PUBLIC_GARDEN_ADS_KEY || "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010"}';
+                var gardenUrl = '${process.env.GARDEN_ADS_URL || "http://localhost:3000"}';
+                var apiKey = '${process.env.GARDEN_ADS_KEY || "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010"}';
                 var expiryDays = 7;
 
                 // 1. Captura inmediata de parámetros (Atribución)
