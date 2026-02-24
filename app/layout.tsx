@@ -23,8 +23,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function(w,d,s,u,k){
-                var gardenUrl = '${process.env.GARDEN_ADS_URL || "http://localhost:3000"}';
-                var apiKey = '${process.env.GARDEN_ADS_KEY || "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010"}';
+                var gardenUrl = '${process.env.GARDEN_ADS_URL}';
+                var apiKey = '${process.env.GARDEN_ADS_KEY}';
                 var expiryDays = 7;
 
                 // 1. Captura inmediata de parámetros (Atribución)
@@ -41,37 +41,53 @@ export default function RootLayout({
                     var expiry = Date.now() + (expiryDays * 24 * 60 * 60 * 1000);
                     var payload = JSON.stringify({ params: attrData, expiry: expiry });
                     localStorage.setItem('_ga_attribution', payload);
+                  }
+
+                  // --- Inyección Automática ---
+                  function inject() {
+                    var forms = d.querySelectorAll('form');
+                    var visitorId = localStorage.getItem('_a_vid') || '';
+                    var storedAttr = localStorage.getItem('_ga_attribution') || '';
                     
-                    // --- Inyección Automática ---
-                    function inject() {
-                      var forms = d.querySelectorAll('form');
-                      var visitorId = localStorage.getItem('_a_vid') || '';
-                      forms.forEach(function(f) {
-                        // Inyectar/Actualizar Datos de Atribución
+                    forms.forEach(function(f) {
+                      // 1. Atribución
+                      if (storedAttr) {
                         var attrInput = f.querySelector('input[name="attributionData"]');
                         if (!attrInput) {
                           attrInput = d.createElement('input');
                           attrInput.type = 'hidden'; attrInput.name = 'attributionData';
                           f.appendChild(attrInput);
                         }
-                        attrInput.value = payload;
+                        attrInput.value = storedAttr;
+                      }
 
-                        // Inyectar/Actualizar ID de Visitante (external_session_id)
-                        var vidInput = f.querySelector('input[name="externalClientId"]');
-                        if (!vidInput) {
-                          vidInput = d.createElement('input');
-                          vidInput.type = 'hidden'; vidInput.name = 'externalClientId';
-                          f.appendChild(vidInput);
-                        }
-                        // Actualizar solo si tenemos un ID (por si el pixel tarda en cargar)
-                        if (visitorId) {
-                          vidInput.value = visitorId;
-                        }
-                      });
-                    }
-                    inject();
-                    setInterval(inject, 2000);
+                      // 2. ID de Visitante (external_session_id)
+                      var vidInput = f.querySelector('input[name="externalClientId"]');
+                      if (!vidInput) {
+                        vidInput = d.createElement('input');
+                        vidInput.type = 'hidden'; vidInput.name = 'externalClientId';
+                        f.appendChild(vidInput);
+                      }
+                      if (visitorId) {
+                        vidInput.value = visitorId;
+                      }
+
+                      // 3. Project ID
+                      var projInput = f.querySelector('input[name="projectId"]');
+                      if (!projInput) {
+                        projInput = d.createElement('input');
+                        projInput.type = 'hidden'; projInput.name = 'projectId';
+                        f.appendChild(projInput);
+                      }
+                      projInput.value = apiKey;
+                    });
                   }
+                  
+                  // Ejecutar inmediatamente y con un intervalo más corto al principio
+                  inject();
+                  var injectInterval = setInterval(inject, 500);
+                  // Limpiar el intervalo después de 10 segundos para no saturar, pero mantenerlo si se prefiere
+                  setTimeout(function() { clearInterval(injectInterval); setInterval(inject, 3000); }, 10000);
                 } catch(e) {}
 
                 // 2. Cargador del Pixel de GardenAds (Reporte)

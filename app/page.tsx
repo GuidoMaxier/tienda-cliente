@@ -92,6 +92,7 @@ export default function Home() {
                 name="attributionData" 
                 value={attribution ? (typeof attribution === 'object' ? JSON.stringify(attribution) : attribution) : ""} 
               />
+              <input type="hidden" name="productName" value="Pasha Original Edition" />
               
               <div className="flex flex-col gap-3">
                 <label className="text-sm font-semibold text-slate-700">Quantity</label>

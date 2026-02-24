@@ -12,16 +12,16 @@ Para que GardenAds funcione, necesitamos que la información del anuncio (fclip/
 
 El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web. Este script se encarga de "chismosear" la URL y guardar los datos en el navegador del cliente.
 
-**Lo que hace:** Detecta parámetros como `utm_source`, `fclip`, `gclip`, etc., y los guarda en el `localStorage` con una validez (ej. 7 días).
+**Lo que hace:** Detecta parámetros como `utm_source`, `fclip`, `gclip`, etc., y los guarda en el `localStorage`. Además, **inyecta automáticamente** los datos necesarios en cualquier formulario que encuentre en la página.
 
 ```html
 <!-- Pegar en el <head> -->
 <script>
   (function (w, d, s, u, k) {
-    // CONFIGURACIÓN
-    var gardenUrl = "https://garden-ads.com";
+    // CONFIGURACIÓN (Viene de tus variables de entorno)
+    var gardenUrl = "TU_GARDEN_ADS_URL";
     var apiKey = "TU_PROJECT_ID";
-    var expiryDays = 7; // Días que durará el rastro del anuncio
+    var expiryDays = 7;
 
     // 1. Captura inmediata de parámetros
     try {
@@ -43,6 +43,7 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
           hasData = true;
         }
       });
+
       if (hasData) {
         var payload = JSON.stringify({
           params: attrData,
@@ -50,12 +51,12 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
         });
         localStorage.setItem("_ga_attribution", payload);
 
-        // Inyección automática en formularios (Se actualiza cada 2s para asegurar el ID del pixel)
+        // --- Inyección Automática ---
         function inject() {
           var forms = d.querySelectorAll("form");
           var visitorId = localStorage.getItem("_a_vid") || "";
           forms.forEach(function (f) {
-            // 1. Datos de Atribución (UTMs, GCLIP, etc.)
+            // 1. Atribución (UTMs, etc)
             var attrInput = f.querySelector('input[name="attributionData"]');
             if (!attrInput) {
               attrInput = d.createElement("input");
@@ -65,7 +66,7 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
             }
             attrInput.value = payload;
 
-            // 2. ID de Visitante (Obligatorio para atribución exacta)
+            // 2. ID de Visitante (external_session_id)
             var vidInput = f.querySelector('input[name="externalClientId"]');
             if (!vidInput) {
               vidInput = d.createElement("input");
@@ -74,14 +75,24 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
               f.appendChild(vidInput);
             }
             if (visitorId) vidInput.value = visitorId;
+
+            // 3. Project ID (Automático desde la config del script)
+            var projInput = f.querySelector('input[name="projectId"]');
+            if (!projInput) {
+              projInput = d.createElement("input");
+              projInput.type = "hidden";
+              projInput.name = "projectId";
+              f.appendChild(projInput);
+            }
+            projInput.value = apiKey;
           });
         }
         inject();
-        setInterval(inject, 2000);
+        setInterval(inject, 2000); // Mantiene los datos frescos si el DOM cambia
       }
     } catch (e) {}
 
-    // 2. Cargador del Pixel
+    // 2. Cargador del Pixel de GardenAds
     w["_aq"] = w["_aq"] || [];
     w["_ak"] = apiKey;
     w["_au"] = gardenUrl;
@@ -96,38 +107,50 @@ El primer paso es colocar el script de GardenAds en el `<head>` de tu sitio web.
 
 ---
 
-### 2. Persistencia Automática (Sin Código en el Formulario)
+### 2. Persistencia Automática
 
-Nuestro script inteligente detecta automáticamente cualquier formulario de compra en tu página e inyecta la información de atribución. **No necesitas modificar tu HTML ni agregar inputs manualmente.**
+Nuestro script inteligente detecta automáticamente cualquier formulario de compra en tu página e inyecta la información de atribución, el ID del visitante y el ID del proyecto. **No necesitas crear estos inputs manualmente**, pero si quieres enviar datos extra como el nombre del producto, puedes hacerlo así:
+
+```html
+<form action="/api/checkout" method="POST">
+  <!-- Opcional: Para saber qué se vendió -->
+  <input type="hidden" name="productName" value="Nombre del Producto" />
+  <button type="submit">Comprar</button>
+</form>
+```
 
 ---
 
-### 3. Configuración del Servidor (El Único Paso de Código)
+### 3. Configuración del Servidor
 
-Cuando tu servidor reciba el formulario de compra, solo debes asegurarte de capturar el campo `attributionData` y pasárselo a Stripe en el objeto `metadata`.
+Cuando tu servidor reciba el formulario, solo debes capturar los campos inyectados y pasárselos a Stripe.
 
-**Ejemplo en Node.js / Next.js:**
+**Ejemplo en Next.js (App Router):**
 
 ```javascript
-// 1. Captura los datos del formulario (inyectados automáticamente)
+// 1. Captura los datos (inyectados automáticamente + tus manuales)
 const formData = await request.formData();
 const attributionData = formData.get("attributionData");
 const externalClientId = formData.get("externalClientId");
+const projectId = formData.get("projectId") || process.env.GARDEN_ADS_KEY;
+const productName = formData.get("productName") || "Producto Desconocido";
 
-// 2. Pásalo a Stripe (Esto es vital para GardenAds)
+// 2. Pásalo a Stripe (Esencial para el ROI en GardenAds)
 const session = await stripe.checkout.sessions.create({
-  // ... tus otros campos (mode, line_items, etc.) ...
+  // ... campos estándar ...
   payment_intent_data: {
     metadata: {
       attribution: attributionData,
-      project_id: "TU_PROJECT_ID",
+      project_id: projectId,
       external_session_id: externalClientId,
+      product_name: productName,
     },
   },
   metadata: {
     attribution: attributionData,
-    project_id: "TU_PROJECT_ID",
+    project_id: projectId,
     external_session_id: externalClientId,
+    product_name: productName,
   },
 });
 ```

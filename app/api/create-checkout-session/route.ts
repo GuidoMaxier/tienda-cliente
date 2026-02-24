@@ -7,13 +7,15 @@ export async function POST(request: NextRequest) {
     const quantity = parseInt(formData.get("quantity") as string) || 1;
     const attributionData = formData.get("attributionData") as string || "";
     const externalClientId = formData.get("externalClientId") as string || "";
+    const projectId = (formData.get("projectId") as string) || process.env.GARDEN_ADS_KEY || "";
+    const productName = (formData.get("productName") as string) || "Pasha Original Edition";
 
     // Detectar automáticamente el dominio para la redirección (Vercel o Local)
     const host = request.headers.get("host");
     const protocol = host?.includes("localhost") ? "http" : "https";
     const domainURL = process.env.DOMAIN || `${protocol}://${host}`;
 
-    console.log("Creating session:", { attributionData, externalClientId, domainURL });
+    console.log("Creating session:", { attributionData, externalClientId, projectId, domainURL });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -35,15 +37,17 @@ export async function POST(request: NextRequest) {
         metadata: {
           attribution: attributionData,
           source: "tienda-cliente-test",
-          project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+          project_id: projectId,
           external_session_id: externalClientId,
+          product_name: productName,
         },
       },
       metadata: {
         attribution: attributionData,
         source: "tienda-cliente-test",
-        project_id: "56065e6a5decce35b0dbc78cc980c48fd33b661eca644cfce6a10b2507335010",
+        project_id: projectId,
         external_session_id: externalClientId,
+        product_name: "Pasha Original Edition",
       },
       success_url: `${domainURL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${domainURL}/canceled`,
